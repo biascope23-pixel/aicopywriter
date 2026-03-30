@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>마케팅 문구 생성기</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f0f2f8; --white: #ffffff; --border: #dde1f0;
+    --text-main: #1a1d35; --text-sub: #5a5f85; --text-muted: #9da3c0;
+    --kakao: #f5c400; --kakao-dark: #a07800;
+    --push: #6c4ef2; --push-grad: linear-gradient(135deg, #6c4ef2, #a855f7);
+    --green: #15a85a; --red: #e03c3c; --purple: #8b72f8; --card-bg: #f8f7ff;
+  }
+  body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); min-height: 100vh; padding: 32px 20px 60px; display: flex; flex-direction: column; align-items: center; color: var(--text-main); }
+  .inner { width: 100%; max-width: 740px; }
+
+  .api-banner { background: #fff8e1; border: 2px solid #f5c400; border-radius: 14px; padding: 18px 22px; margin-bottom: 24px; display: flex; flex-direction: column; gap: 10px; }
+  .api-banner-title { font-size: 14px; font-weight: 800; color: #a07800; display: flex; align-items: center; gap: 6px; }
+  .api-key-row { display: flex; gap: 8px; }
+  .api-key-input { flex: 1; background: #fffde7; border: 1.5px solid #f5c400; border-radius: 10px; padding: 10px 14px; font-family: monospace; font-size: 13px; color: var(--text-main); outline: none; }
+  .api-key-input:focus { border-color: #e6b800; box-shadow: 0 0 0 3px rgba(245,196,0,0.15); }
+  .api-save-btn { background: #f5c400; border: none; border-radius: 10px; padding: 10px 18px; font-family: 'Noto Sans KR', sans-serif; font-size: 13px; font-weight: 800; color: #1a1a1a; cursor: pointer; white-space: nowrap; transition: background 0.2s; }
+  .api-save-btn:hover { background: #e6b800; }
+  .api-status { font-size: 12px; font-weight: 600; }
+  .api-status.ok { color: var(--green); }
+  .api-status.empty { color: var(--text-sub); }
+
+  .header { display: flex; align-items: center; gap: 16px; margin-bottom: 28px; justify-content: center; }
+  .header-icon { width: 58px; height: 58px; background: var(--push-grad); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 28px; flex-shrink: 0; box-shadow: 0 4px 16px rgba(108,78,242,0.3); }
+  .header h1 { font-size: 26px; font-weight: 900; color: var(--text-main); letter-spacing: -0.5px; }
+  .header p { font-size: 14px; color: var(--text-sub); margin-top: 4px; }
+
+  .main-tabs { display: grid; grid-template-columns: 1fr 1fr; background: var(--white); border-radius: 16px; padding: 6px; margin-bottom: 10px; border: 1px solid var(--border); gap: 6px; }
+  .main-tab { padding: 15px; border-radius: 12px; border: none; cursor: pointer; font-size: 17px; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; background: transparent; color: var(--text-sub); }
+  .main-tab.active-kakao { background: var(--kakao); color: #1a1a1a; }
+  .main-tab.active-push { background: var(--push-grad); color: #fff; }
+
+  .sub-tabs { background: var(--white); border-radius: 12px; padding: 5px; margin-bottom: 16px; border: 1px solid var(--border); gap: 5px; display: grid; }
+  .sub-tabs.cols2 { grid-template-columns: 1fr 1fr; }
+  .sub-tabs.cols3 { grid-template-columns: 1fr 1fr 1fr; }
+  .sub-tab { padding: 12px; border-radius: 9px; border: none; cursor: pointer; font-size: 15px; font-weight: 600; font-family: 'Noto Sans KR', sans-serif; background: transparent; color: var(--text-sub); transition: all 0.15s; }
+  .sub-tab.active-kakao { background: rgba(245,196,0,0.15); color: var(--kakao-dark); border: 1px solid rgba(245,196,0,0.4); }
+  .sub-tab.active-push { background: #ede9ff; color: var(--push); }
+
+  .card { background: var(--white); border: 1px solid var(--border); border-radius: 16px; padding: 28px; }
+
+  .form-label { font-size: 16px; font-weight: 700; color: var(--text-main); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  select, textarea { width: 100%; background: #f5f6fb; border: 2px solid var(--border); border-radius: 12px; color: var(--text-main); font-family: 'Noto Sans KR', sans-serif; font-size: 16px; padding: 14px 16px; outline: none; transition: border-color 0.2s; }
+  select { margin-bottom: 20px; cursor: pointer; }
+  textarea { min-height: 90px; line-height: 1.7; resize: vertical; }
+  select:focus, textarea:focus { border-color: var(--push); }
+
+  .gen-btn { width: 100%; padding: 18px; border-radius: 14px; border: none; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; font-size: 18px; font-weight: 800; margin-top: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; transition: opacity 0.2s, transform 0.1s; }
+  .gen-btn:hover:not(:disabled) { opacity: 0.92; transform: translateY(-1px); }
+  .gen-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .gen-btn.kakao { background: var(--kakao); color: #1a1a1a; }
+  .gen-btn.push { background: var(--push-grad); color: #fff; }
+
+  .error-box { margin-top: 16px; background: rgba(224,60,60,0.08); border: 1px solid rgba(224,60,60,0.3); border-radius: 12px; padding: 14px 18px; color: var(--red); font-size: 14px; font-weight: 600; }
+  .loading-box { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 32px; color: var(--text-sub); font-size: 16px; }
+  .spinner { width: 22px; height: 22px; border: 3px solid var(--border); border-top-color: var(--push); border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .results { margin-top: 24px; display: flex; flex-direction: column; gap: 16px; }
+  .result-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+  .strategy-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .strategy-tag { background: #ede9ff; border: 1px solid #c4b5fd; color: var(--push); border-radius: 20px; padding: 5px 14px; font-size: 13px; font-weight: 700; }
+  .result-num { font-size: 14px; color: var(--text-muted); font-weight: 700; }
+
+  .result-row { display: flex; align-items: flex-start; gap: 12px; border-radius: 10px; padding: 14px 16px; margin-bottom: 8px; border: 1px solid var(--border); background: var(--white); }
+  .result-row.preview { background: rgba(245,196,0,0.08); border-color: rgba(245,196,0,0.35); }
+  .row-label { font-size: 14px; font-weight: 800; white-space: nowrap; min-width: 52px; margin-top: 2px; color: var(--text-sub); }
+  .result-row.preview .row-label { color: var(--kakao-dark); }
+  .row-text { font-size: 15px; line-height: 1.7; flex: 1; color: var(--text-main); }
+  .result-row.preview .row-text { font-weight: 700; color: #7a5c00; }
+
+  .copy-btn { background: #f5f6fb; border: 1px solid var(--border); border-radius: 8px; padding: 6px 14px; font-size: 13px; font-weight: 700; color: var(--text-sub); cursor: pointer; font-family: 'Noto Sans KR', sans-serif; white-space: nowrap; flex-shrink: 0; transition: all 0.2s; }
+  .copy-btn.copied { border-color: var(--green); color: var(--green); }
+
+  .insight { font-size: 14px; color: var(--purple); font-weight: 600; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+
+  .regen-btn { width: 100%; padding: 16px; border-radius: 12px; border: 2px solid var(--border); cursor: pointer; font-family: 'Noto Sans KR', sans-serif; font-size: 16px; font-weight: 700; background: #f5f6fb; color: var(--text-sub); margin-top: 4px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s; }
+  .regen-btn:hover { background: #eceef8; }
+
+  .bp-header { border-radius: 12px; padding: 14px 18px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+  .bp-header.do { background: rgba(61,220,132,0.1); border: 1px solid rgba(61,220,132,0.3); }
+  .bp-header.dont { background: rgba(255,107,107,0.1); border: 1px solid rgba(255,107,107,0.3); }
+  .bp-header-title { font-size: 17px; font-weight: 800; flex: 1; }
+  .bp-header.do .bp-header-title { color: var(--green); }
+  .bp-header.dont .bp-header-title { color: var(--red); }
+
+  .bp-card { background: var(--card-bg); border-radius: 12px; padding: 18px; margin-bottom: 12px; }
+  .bp-card.do-card { border-left: 4px solid var(--green); }
+  .bp-card.dont-card { border-left: 4px solid var(--red); }
+  .bp-card-title { font-size: 16px; font-weight: 800; color: var(--text-main); margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+  .bp-pct { margin-left: auto; font-size: 13px; font-weight: 800; color: var(--green); background: rgba(61,220,132,0.12); border-radius: 20px; padding: 2px 10px; }
+  .bp-desc { font-size: 14px; color: var(--text-sub); margin-bottom: 14px; line-height: 1.7; }
+  .bp-example { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .bp-ex-row { display: flex; gap: 10px; margin-bottom: 8px; }
+  .bp-ex-row:last-child { margin-bottom: 0; }
+  .bp-ex-label { font-weight: 800; color: var(--text-muted); min-width: 32px; font-size: 13px; }
+  .bp-ex-val { color: var(--text-main); line-height: 1.7; font-size: 14px; white-space: pre-line; }
+  .bp-arrow { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 13px; color: var(--red); font-weight: 700; }
+
+  .checklist-box { background: rgba(21,168,90,0.06); border: 2px solid rgba(61,220,132,0.25); border-radius: 14px; padding: 20px; margin-bottom: 24px; }
+  .checklist-title { font-size: 16px; font-weight: 800; color: var(--green); margin-bottom: 14px; }
+  .checklist-item { font-size: 15px; color: var(--text-main); padding: 10px 0; border-bottom: 1px solid rgba(61,220,132,0.12); line-height: 1.6; font-weight: 500; }
+  .checklist-item:last-child { border-bottom: none; }
+
+  .preview-list { background: #f0f2f8; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+  .preview-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .preview-item:last-child { border-bottom: none; }
+  .brand-icon { width: 42px; height: 42px; border-radius: 12px; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; flex-shrink: 0; text-align: center; line-height: 1.2; white-space: pre-line; }
+  .preview-name { font-size: 14px; font-weight: 700; color: var(--text-main); }
+  .preview-time { font-size: 12px; color: var(--text-muted); font-weight: 400; margin-left: 4px; }
+  .preview-text { font-size: 13px; color: var(--text-sub); margin-top: 3px; }
+
+  .do-example { display: flex; align-items: flex-start; gap: 12px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 10px; }
+  .brand-label { font-size: 12px; font-weight: 800; color: #fff; border-radius: 8px; padding: 4px 10px; white-space: nowrap; flex-shrink: 0; margin-top: 3px; }
+  .do-preview { font-size: 16px; font-weight: 800; color: var(--kakao); margin-bottom: 6px; line-height: 1.5; }
+  .do-insight { font-size: 13px; color: var(--purple); font-weight: 600; }
+  .tip-box { background: rgba(108,78,242,0.06); border: 1px solid rgba(124,92,252,0.3); border-radius: 10px; padding: 14px 16px; font-size: 14px; color: var(--text-sub); line-height: 1.7; margin-bottom: 24px; }
+
+  .ref-header { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 18px; }
+  .ref-header h3 { font-size: 18px; font-weight: 800; color: var(--text-main); margin-bottom: 8px; }
+  .ref-header p { font-size: 14px; color: var(--text-sub); line-height: 1.7; margin-bottom: 10px; }
+  .ref-notice { font-size: 13px; color: #2979d8; background: rgba(116,185,255,0.08); border: 1px solid rgba(116,185,255,0.2); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; line-height: 1.6; }
+  .ref-link { display: inline-block; background: rgba(61,220,132,0.1); border: 1px solid rgba(61,220,132,0.35); color: var(--green); border-radius: 10px; padding: 10px 18px; font-size: 14px; font-weight: 700; text-decoration: none; }
+  .ref-link:hover { background: rgba(61,220,132,0.18); }
+  .ref-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 12px; }
+  .ref-tag { display: inline-block; background: rgba(124,92,252,0.15); border: 1px solid rgba(124,92,252,0.4); color: var(--purple); border-radius: 20px; padding: 4px 14px; font-size: 13px; font-weight: 700; margin-bottom: 12px; }
+  .ref-body { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
+  .ref-row { display: flex; gap: 10px; margin-bottom: 8px; }
+  .ref-row:last-child { margin-bottom: 0; }
+  .ref-lbl { font-weight: 800; color: var(--text-muted); min-width: 32px; font-size: 13px; }
+  .ref-val { color: var(--text-main); font-size: 14px; line-height: 1.7; white-space: pre-line; }
+  .ref-val.title { font-weight: 800; font-size: 15px; }
+  .ref-insight { font-size: 13px; color: var(--purple); font-weight: 600; }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="inner">
+
+  <div class="api-banner">
+    <div class="api-banner-title">🔑 Anthropic API 키 설정</div>
+    <div class="api-key-row">
+      <input class="api-key-input" type="password" id="apiKeyInput" placeholder="sk-ant-api..." />
+      <button class="api-save-btn" onclick="saveApiKey()">저장</button>
+    </div>
+    <div class="api-status empty" id="apiStatus">API 키를 입력하고 저장하세요</div>
+  </div>
+
+  <div class="header">
+    <div class="header-icon">📱</div>
+    <div>
+      <h1>마케팅 문구 생성기</h1>
+      <p>앱푸시 · 카톡 플친 · BP 데이터 기반 AI 생성</p>
+    </div>
+  </div>
+
+  <div class="main-tabs">
+    <button class="main-tab active-kakao" id="tab-kakao" onclick="switchMain('kakao')">💬 카톡 플친</button>
+    <button class="main-tab" id="tab-push" onclick="switchMain('push')">📱 앱푸시</button>
+  </div>
+
+  <div class="sub-tabs cols2" id="subTabsContainer">
+    <button class="sub-tab active-kakao" id="stab-generate" onclick="switchSub('generate')">✨ 문구 생성</button>
+    <button class="sub-tab" id="stab-bp" onclick="switchSub('bp')">📋 BP 가이드</button>
+    <button class="sub-tab hidden" id="stab-ref" onclick="switchSub('ref')">🚀 레퍼런스</button>
+  </div>
+
+  <div class="card">
+
+    <!-- 문구 생성 -->
+    <div id="panel-generate">
+      <div style="margin-bottom:24px">
+        <div class="form-label">📍 지점명</div>
+        <select id="branchSelect">
+          <option value="">지점을 선택하세요</option>
+          <optgroup label="2001">
+            <option>2001안양</option><option>2001부평</option><option>2001분당</option><option>2001중계</option>
+          </optgroup>
+          <optgroup label="NC">
+            <option>NC강서</option><option>NC경산</option><option>NC광주역</option><option>NC대전유성</option>
+            <option>NC부산대</option><option>NC불광</option><option>NC송파</option><option>NC수원터미널</option>
+            <option>NC순천</option><option>NC신구로</option><option>NC안산고잔</option><option>NC야탑</option>
+            <option>NC엑스코</option><option>NC전주</option><option>NC중앙로역</option><option>NC창원</option>
+            <option>NC청주</option><option>NC충장</option><option>NC해운대</option>
+          </optgroup>
+          <optgroup label="뉴코아">
+            <option>뉴코아 강남</option><option>뉴코아 광명</option><option>뉴코아 괴정</option>
+            <option>뉴코아 덕천</option><option>뉴코아 동수원</option><option>뉴코아 부천</option>
+            <option>뉴코아 산본</option><option>뉴코아 울산성남</option><option>뉴코아 울산</option>
+            <option>뉴코아 인천</option><option>뉴코아 일산</option><option>뉴코아 천호</option>
+            <option>뉴코아 평촌</option><option>뉴코아 평택</option>
+          </optgroup>
+          <optgroup label="동아">
+            <option>동아 강북점</option><option>동아 구미점</option><option>동아 쇼핑점</option><option>동아 수성점</option>
+          </optgroup>
+        </select>
+        <div class="form-label" id="contentLabel">📢 메시지 소재</div>
+        <textarea id="contentInput" placeholder="예) 이득쿠폰 다운로드 알리기, 특가 세일 행사 안내"></textarea>
+      </div>
+      <button class="gen-btn kakao" id="genBtn" onclick="generate()">💬 카톡 플친 문구 3개 생성하기</button>
+      <div class="error-box hidden" id="errorBox"></div>
+      <div class="loading-box hidden" id="loadingBox"><div class="spinner"></div>AI가 문구를 생성하고 있어요...</div>
+      <div class="results hidden" id="resultsBox"></div>
+    </div>
+
+    <!-- 앱푸시 BP -->
+    <div id="panel-bp-push" class="hidden">
+      <div class="bp-header do">
+        <span style="font-size:20px">✅</span>
+        <span class="bp-header-title">DO — 이렇게 쓰세요</span>
+        <span style="font-size:12px;color:var(--green);background:rgba(61,220,132,0.12);border:1px solid rgba(61,220,132,0.35);border-radius:6px;padding:3px 10px;font-weight:700">% = 읽음 전환율</span>
+      </div>
+      <div class="bp-card do-card">
+        <div class="bp-card-title"><span style="color:var(--green)">✓</span> 개인화 메시지 ($회원명 코드) <span class="bp-pct">17.9%</span></div>
+        <div class="bp-desc">고객 이름을 직접 불러 주목도를 높입니다.</div>
+        <div class="bp-example">
+          <div class="bp-ex-row"><span class="bp-ex-label">제목</span><span class="bp-ex-val">To. $회원명 고객님께 📱</span></div>
+          <div class="bp-ex-row"><span class="bp-ex-label">본문</span><span class="bp-ex-val">(광고) 저 아직 쿠폰함에 있어요... 🙊
+미사용 쿠폰 확인하러 가기</span></div>
+        </div>
+      </div>
+      <div class="bp-card do-card">
+        <div class="bp-card-title"><span style="color:var(--green)">✓</span> 쿠폰·혜택 금액을 제목에 노출 <span class="bp-pct">10.7%</span></div>
+        <div class="bp-desc">구체적인 숫자로 혜택을 명시해 즉시 인지시킵니다.</div>
+        <div class="bp-example">
+          <div class="bp-ex-row"><span class="bp-ex-label">제목</span><span class="bp-ex-val">OO점 킴스클럽</span></div>
+          <div class="bp-ex-row"><span class="bp-ex-label">본문</span><span class="bp-ex-val">(광고) 선착순 3천원 할인쿠폰 도착! 🎁
+다운기간: 1.2(금)~11(일)</span></div>
+        </div>
+      </div>
+      <div class="bp-card do-card">
+        <div class="bp-card-title"><span style="color:var(--green)">✓</span> 혜택 조건은 단순하게 1문장 이내 <span class="bp-pct">6.1%</span></div>
+        <div class="bp-desc">짧고 명확하게 써야 이탈 없이 클릭까지 이어집니다.</div>
+        <div class="bp-example">
+          <div class="bp-ex-row"><span class="bp-ex-label">제목</span><span class="bp-ex-val">$회원명 고객님 지금부터 시작해요 🎯</span></div>
+          <div class="bp-ex-row"><span class="bp-ex-label">본문</span><span class="bp-ex-val">(광고) e이득쿠폰 사전 다운 OPEN!
+총 2만원 쿠폰팩 받으러 가기</span></div>
+        </div>
+      </div>
+      <div class="bp-card do-card">
+        <div class="bp-card-title"><span style="color:var(--green)">✓</span> 다음 행동을 명확히 안내 (CTA) <span class="bp-pct">5.2%</span></div>
+        <div class="bp-desc">'확인하러 가기', '받으러 가기' 등으로 클릭을 유도합니다.</div>
+        <div class="bp-example">
+          <div class="bp-ex-row"><span class="bp-ex-label">제목</span><span class="bp-ex-val">OO점 킴스클럽</span></div>
+          <div class="bp-ex-row"><span class="bp-ex-label">본문</span><span class="bp-ex-val">(광고) 선착순 킴스 3천원 할인쿠폰 증정
+헤피뉴이어 쿠폰 받으러 가기 🎁</span></div>
+        </div>
+      </div>
+      <div class="bp-header dont" style="margin-top:8px">
+        <span style="font-size:20px;color:var(--red)">✖</span>
+        <span class="bp-header-title">DON'T — 이건 피하세요</span>
+      </div>
+      <div class="bp-card dont-card">
+        <div class="bp-card-title"><span style="color:var(--red)">✖</span> 여러 혜택 혼합 안내</div>
+        <div class="bp-desc">한 메시지에 혜택을 3개 이상 나열하면 핵심 메시지가 분산됩니다.</div>
+        <div class="bp-example">
+          <div style="color:var(--text-sub);font-size:14px;line-height:1.7;white-space:pre-line">♥OO점 3.1(일) e이득데이
+(광고)3.1(일)10시 조기오픈
+🍀3/10만원이상 5천원/1만5천원 할인
+🥤 7만원이상 투썸플레이스 커피쿠폰</div>
+          <div class="bp-arrow">→ 혜택 나열 과다 → 핵심 메시지 분산, 클릭 동기 불명확</div>
+        </div>
+      </div>
+      <div class="bp-card dont-card">
+        <div class="bp-card-title"><span style="color:var(--red)">✖</span> 추상적 수식어 사용</div>
+        <div class="bp-desc">'감각적', '스타일 완성' 등 모호한 표현은 메시지 의미를 흐립니다.</div>
+        <div class="bp-example">
+          <div style="color:var(--text-sub);font-size:14px;line-height:1.7;white-space:pre-line">OO점_주말 행사 소식!
+최대 90% 감각적인 겨울 스타일 완성!</div>
+          <div class="bp-arrow">→ 추상적 표현 → 메시지 의미 불명확</div>
+        </div>
+      </div>
+      <div class="bp-card dont-card">
+        <div class="bp-card-title"><span style="color:var(--red)">✖</span> 혜택 없는 단순 공지</div>
+        <div class="bp-desc">고객에게 직접적 혜택이 없는 메시지는 클릭 동기가 없습니다.</div>
+        <div class="bp-example">
+          <div style="color:var(--text-sub);font-size:14px;line-height:1.7;white-space:pre-line">OO점
+데코 48주년 기념 프로모션</div>
+          <div class="bp-arrow">→ 혜택 미제시 → 메시지 클릭 동기 부족</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 카톡 BP -->
+    <div id="panel-bp-kakao" class="hidden">
+      <div class="checklist-box">
+        <div class="checklist-title">✅ 플친 카드 메시지 구성 시 핵심 체크포인트</div>
+        <div class="checklist-item">① 첫 번째 카드 제목에 핵심 키워드 넣기</div>
+        <div class="checklist-item">② 미리보기에서 고객이 '열어 볼 이유' 담기 (쿠폰, 세일 시작 등)</div>
+        <div class="checklist-item">③ 카드마다 이미지·제목 및 내용·버튼 구조 통일</div>
+      </div>
+      <div style="font-size:17px;font-weight:800;color:var(--text-main);margin-bottom:8px">👁️ 고객이 처음 보는 문구는?</div>
+      <div style="font-size:14px;color:var(--text-sub);margin-bottom:16px;line-height:1.6">카카오톡 알림 목록에서 고객에게 <strong>이 첫번째 줄이 제일 먼저 보입니다</strong></div>
+      <div class="preview-list">
+        <div class="preview-item"><div class="brand-icon" style="background:#c8102e">롯&#10;데</div><div><div class="preview-name">롯데마트 <span class="preview-time">오전 10:12</span></div><div class="preview-text">(광고)미국산 오렌지 590원~ 🌸</div></div></div>
+        <div class="preview-item"><div class="brand-icon" style="background:#003087">AK</div><div><div class="preview-name">AK플라자 <span class="preview-time">오전 10:01</span></div><div class="preview-text">(광고)최대 30% 쇼핑 혜택 ❤️</div></div></div>
+        <div class="preview-item"><div class="brand-icon" style="background:#222">29&#10;CM</div><div><div class="preview-name">29CM <span class="preview-time">3월 9일</span></div><div class="preview-text">(광고)[~81%] 이구패션위크 시작</div></div></div>
+        <div class="preview-item"><div class="brand-icon" style="background:#000;font-size:9px">LUSH</div><div><div class="preview-name">러쉬(LUSH) <span class="preview-time">3월 12일</span></div><div class="preview-text">(광고) 🎁 최초 공개 기념 선착순 선물</div></div></div>
+      </div>
+      <div class="bp-header do"><span style="font-size:20px">✅</span><span class="bp-header-title">DO — 이렇게 쓰세요</span></div>
+      <div class="do-example"><div class="brand-label" style="background:#5f0080">Kurly</div><div><div class="do-preview">🎁 원더컬리 [100% 당첨 쿠폰] 오픈!</div><div class="do-insight">→ 브랜드명 + 혜택 키워드를 첫 줄에 바로 노출</div></div></div>
+      <div class="do-example"><div class="brand-label" style="background:#006241">올리브영</div><div><div class="do-preview">올영세일 최대 70% 할인!</div><div class="do-insight">→ 이벤트명 + 할인율 수치로 즉시 클릭 유도</div></div></div>
+      <div class="tip-box">💡 첫 줄에 <strong style="color:var(--text-main)">혜택 수치 or 이벤트명 키워드</strong>가 없으면 열어볼 이유가 없습니다!</div>
+      <div class="bp-header dont"><span style="font-size:20px;color:var(--red)">✖</span><span class="bp-header-title">DON'T — 이건 피하세요</span></div>
+      <div class="bp-card dont-card">
+        <div class="bp-card-title"><span style="color:var(--red)">✖</span> 미리보기에 브랜드명만 노출</div>
+        <div class="bp-desc">혜택 없이 채널명만 쓰면 열어볼 이유가 없습니다.</div>
+        <div class="bp-example"><div style="color:var(--text-sub);font-size:14px;line-height:1.7;white-space:pre-line">OO점
+(광고) ★OO점★</div><div class="bp-arrow">→ 혜택 미제시 → 열람 동기 없음</div></div>
+      </div>
+      <div class="bp-card dont-card">
+        <div class="bp-card-title"><span style="color:var(--red)">✖</span> 혜택 없는 추상적 문구 사용</div>
+        <div class="bp-desc">'패션 쇼핑 뉴스'처럼 혜택이 없는 막연한 표현은 클릭 동기가 없습니다.</div>
+        <div class="bp-example"><div style="color:var(--text-sub);font-size:14px;line-height:1.7;white-space:pre-line">OO점
+(광고) 패션 쇼핑 뉴스</div><div class="bp-arrow">→ 구체적 혜택 없음 → 클릭 동기 부족</div></div>
+      </div>
+      <div class="bp-card dont-card">
+        <div class="bp-card-title"><span style="color:var(--red)">✖</span> 카드마다 다른 구조 사용</div>
+        <div class="bp-desc">카드별로 구조가 다르면 통일감이 깨집니다.</div>
+        <div class="bp-example"><div style="color:var(--text-sub);font-size:14px;line-height:1.7;white-space:pre-line">카드1: 제목+버튼만
+카드2: 본문만
+카드3: 이미지만</div><div class="bp-arrow">→ 구조 불일치 → 브랜드 신뢰도 저하</div></div>
+      </div>
+    </div>
+
+    <!-- 레퍼런스 -->
+    <div id="panel-ref" class="hidden">
+      <div class="ref-header">
+        <h3>🚀 최신 앱푸시 레퍼런스</h3>
+        <p>자사 BP 외에 실제 4050 세대가 반응하는 타사 레퍼런스 사례입니다. 문구 작성 시 참고하세요.</p>
+        <div class="ref-notice">🔄 2주에 한 번 업데이트 · 좋은 앱푸시 문구는 이멤버실에 제보 주시면 업데이트해 놓겠습니다 😄</div>
+        <a class="ref-link" href="https://docs.google.com/spreadsheets/d/12KiyN5gBS_0CE8ug_Vd0-XNgtGU-6rlz0UoeyZRADR0/edit?usp=sharing" target="_blank">📋 레퍼런스 스프레드시트 열기 →</a>
+      </div>
+      <div class="ref-card"><div class="ref-tag">퀸잇</div><div class="ref-body"><div class="ref-row"><span class="ref-lbl">제목</span><span class="ref-val title">엄마들 단톡방 난리났어요ㅋㅋ</span></div><div class="ref-row"><span class="ref-lbl">본문</span><span class="ref-val">(광고) 로얄리프 컵 2P [5만원→9천원대]라니 😲</span></div></div><div class="ref-insight">→ 공감형 제목으로 호기심 자극, 가격 낙폭을 직접 노출</div></div>
+      <div class="ref-card"><div class="ref-tag">퀸잇</div><div class="ref-body"><div class="ref-row"><span class="ref-lbl">제목</span><span class="ref-val title">요 [원피스] 입고 모임 갔더니 다들 에쁘대~^^</span></div><div class="ref-row"><span class="ref-lbl">본문</span><span class="ref-val">(광고) 빅사이즈라 군살도 쏙~ 숨겨주네 😊</span></div></div><div class="ref-insight">→ 실사용 후기 형식으로 공감 유도, 체형 고민 직접 해소</div></div>
+      <div class="ref-card"><div class="ref-tag">배달의민족</div><div class="ref-body"><div class="ref-row"><span class="ref-lbl">제목</span><span class="ref-val title">다른 고객님은 모두 [bhc]쿠폰 받는 중! 🔍</span></div><div class="ref-row"><span class="ref-lbl">본문</span><span class="ref-val">(광고) 이번주 가장 많이 다운받고 있는 쿠폰 확인하기</span></div></div><div class="ref-insight">→ 사회적 증거 활용, '나만 못 받는 것' 심리 자극</div></div>
+      <div class="ref-card"><div class="ref-tag">팔도감</div><div class="ref-body"><div class="ref-row"><span class="ref-lbl">제목</span><span class="ref-val title">풍년제 기념 쿠폰 4장 드리는데...</span></div><div class="ref-row"><span class="ref-lbl">본문</span><span class="ref-val">(광고) 특가도.. 정말 많이 준비했는데...
+아직 안들어오신건 아니죠?</span></div></div><div class="ref-insight">→ 말줄임표로 궁금증 유발, 친근한 말투로 행동 유도</div></div>
+      <div class="ref-card"><div class="ref-tag">무신사</div><div class="ref-body"><div class="ref-row"><span class="ref-lbl">제목</span><span class="ref-val title">8월 100% 당첨 랜덤뽑기 진행 중</span></div><div class="ref-row"><span class="ref-lbl">본문</span><span class="ref-val">(광고) 최대 💰 10,000원 적립금을 드려요!</span></div></div><div class="ref-insight">→ 100% 당첨 강조로 참여 부담 제거, 혜택 금액 명시</div></div>
+      <div class="ref-card"><div class="ref-tag">퀸잇</div><div class="ref-body"><div class="ref-row"><span class="ref-lbl">제목</span><span class="ref-val title">브랜드인데 맨투맨이 2만원?!</span></div><div class="ref-row"><span class="ref-lbl">본문</span><span class="ref-val">(광고) 딸이 예쁘다고 뺏어입어요~</span></div></div><div class="ref-insight">→ 가격 의외성으로 클릭 유도, 세대 공감 스토리 활용</div></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  let currentMain = 'kakao';
+  let currentSub = 'generate';
+  let apiKey = localStorage.getItem('anthropic_api_key') || '';
+
+  if (apiKey) {
+    document.getElementById('apiKeyInput').value = apiKey;
+    document.getElementById('apiStatus').textContent = '✅ API 키가 저장되어 있어요';
+    document.getElementById('apiStatus').className = 'api-status ok';
+  }
+
+  function saveApiKey() {
+    const val = document.getElementById('apiKeyInput').value.trim();
+    if (!val) { alert('API 키를 입력해주세요'); return; }
+    apiKey = val;
+    localStorage.setItem('anthropic_api_key', val);
+    document.getElementById('apiStatus').textContent = '✅ API 키가 저장됐어요!';
+    document.getElementById('apiStatus').className = 'api-status ok';
+  }
+
+  function switchMain(tab) {
+    currentMain = tab;
+    currentSub = 'generate';
+    document.getElementById('tab-kakao').className = 'main-tab' + (tab === 'kakao' ? ' active-kakao' : '');
+    document.getElementById('tab-push').className = 'main-tab' + (tab === 'push' ? ' active-push' : '');
+    const subContainer = document.getElementById('subTabsContainer');
+    subContainer.className = 'sub-tabs ' + (tab === 'kakao' ? 'cols2' : 'cols3');
+    document.getElementById('stab-ref').classList.toggle('hidden', tab === 'kakao');
+    updateSubTabs();
+    showPanel();
+    const isKakao = tab === 'kakao';
+    document.getElementById('contentLabel').textContent = isKakao ? '📢 메시지 소재' : '🎯 앱푸시 소재';
+    document.getElementById('contentInput').placeholder = isKakao
+      ? '예) 이득쿠폰 다운로드 알리기, 특가 세일 행사 안내'
+      : '예) e이득데이 1만원 쿠폰팩 다운로드 알리기';
+    const btn = document.getElementById('genBtn');
+    btn.className = 'gen-btn ' + (isKakao ? 'kakao' : 'push');
+    btn.textContent = isKakao ? '💬 카톡 플친 문구 3개 생성하기' : '✨ 앱푸시 문구 3개 생성하기';
+    document.getElementById('resultsBox').classList.add('hidden');
+    document.getElementById('errorBox').classList.add('hidden');
+  }
+
+  function switchSub(tab) {
+    currentSub = tab;
+    updateSubTabs();
+    showPanel();
+  }
+
+  function updateSubTabs() {
+    ['generate','bp','ref'].forEach(t => {
+      const el = document.getElementById('stab-' + t);
+      if (!el) return;
+      const isActive = t === currentSub;
+      const isKakao = currentMain === 'kakao';
+      const wasHidden = el.classList.contains('hidden');
+      el.className = 'sub-tab' + (wasHidden ? ' hidden' : '') + (isActive ? (isKakao ? ' active-kakao' : ' active-push') : '');
+    });
+  }
+
+  function showPanel() {
+    document.getElementById('panel-generate').classList.toggle('hidden', currentSub !== 'generate');
+    document.getElementById('panel-bp-push').classList.toggle('hidden', !(currentSub === 'bp' && currentMain === 'push'));
+    document.getElementById('panel-bp-kakao').classList.toggle('hidden', !(currentSub === 'bp' && currentMain === 'kakao'));
+    document.getElementById('panel-ref').classList.toggle('hidden', currentSub !== 'ref');
+  }
+
+  async function generate() {
+    const branch = document.getElementById('branchSelect').value;
+    const content = document.getElementById('contentInput').value.trim();
+    if (!apiKey) { alert('먼저 API 키를 저장해주세요!'); return; }
+    if (!branch) { alert('지점을 선택해주세요!'); return; }
+    if (!content) { alert('소재 내용을 입력해주세요!'); return; }
+
+    const btn = document.getElementById('genBtn');
+    btn.disabled = true;
+    btn.textContent = '생성 중...';
+    document.getElementById('errorBox').classList.add('hidden');
+    document.getElementById('resultsBox').classList.add('hidden');
+    document.getElementById('loadingBox').classList.remove('hidden');
+
+    const isKakao = currentMain === 'kakao';
+
+    // ── 카톡 플친 프롬프트 ──
+    const kakaoPrompt = `당신은 국내 대형 쇼핑몰 카카오 플러스친구를 운영하는 베테랑 CRM 마케터입니다.
+아래 소재로 카톡 플친 메시지 문구 3가지를 서로 다른 전략으로 만들어주세요.
+
+지점명: ${branch}
+소재: ${content}
+
+=== 미리보기 예시 (이 톤으로) ===
+🎁 [100% 당첨 쿠폰팩] 오픈!
+🔥 [최대 80%] 주년 행사 시작
+🛍️ 선착순 쿠폰팩 지금 열렸어요!
+
+=== 본문 줄1·줄2 정답 예시 (이 톤·길이 그대로) ===
+줄1: 여성복 최대 80% 할인 혜택 💥
+줄2: 이득쿠폰 3종도 함께 도착
+
+줄1: 최대 1만원 쿠폰 증정 🎟️
+줄2: 스파오 1+1까지 놓치지 마세요
+
+줄1: 이득쿠폰 3종 한꺼번에 드려요 🎁
+줄2: 주년 기념 역대급 할인 행사
+
+=== 줄2 금지 예시 (말하다 만 느낌 금지) ===
+나쁜 예: "여성복 80% 할인까지 같이" → "같이"로 끝나면 뭔가 더 있어야 할 것 같은 느낌
+나쁜 예: "이득쿠폰 3종 지금 바로" → "바로" 뒤에 동사가 없어서 붕 뜸
+나쁜 예: "여성복 80% 할인도 한번에" → "한번에" 뒤가 비어있는 느낌
+좋은 예: "이득쿠폰 3종도 함께 도착" → 완결된 느낌
+좋은 예: "스파오 1+1까지 놓치지 마세요" → 자연스럽게 마무리
+좋은 예: "주년 기념 역대급 할인 행사" → 명사형으로 깔끔하게 마무리
+
+=== 버튼 예시 (이 느낌으로) ===
+쿠폰팩 지금 OPEN!
+주년 행사 입장하기
+이벤트 모아보기!
+
+=== 전체 구성 기준 ===
+미리보기: 위 예시 톤으로 / 20자 이내 / 이모지 1개 / 가장 강한 혜택 / 지점명 금지
+줄1: 이모지 1개 (미리보기와 다른 것) / 핵심 혜택 명사형
+줄2: 이모지 없음 / 10~14자 / 완결된 느낌으로 마무리 / 줄1과 자연스럽게 이어짐
+버튼: 위 예시 톤으로 / 10자 이내 / 설레고 누르고 싶게
+insight: 이 전략이 왜 효과적인지 쉬운 말로 자연스러운 한 문장 / "~하기"로 끝낼 것 / "~한다" "~된다" 금지 / 어려운 마케팅 용어 금지
+  좋은 예: "→ 가장 큰 할인액을 앞에 내세워 열어보고 싶게 만들기"
+  좋은 예: "→ 오늘 하루만이라는 느낌으로 지금 바로 눌러보고 싶게 만들기"
+  좋은 예: "→ 혜택이 많다는 느낌을 줘서 손해 보기 싫은 마음 자극하기"
+
+금지: 쉼표(,) / 쿠폰 조건(3만원 이상 등) / 억지 과장 / "같이" "바로" "한번에" 로만 끝나는 줄2 / "~입니다" "~습니다" "~드립니다" 같은 ~니다체 (문장형은 반드시 ~요체로: "도착했어요" "받으세요" "놓치지 마세요")
+
+전략1: 쿠폰·혜택 수치 전면 노출
+전략2: 기간 한정·희소성 강조
+전략3: 행사 규모·총량감 강조
+
+순수 JSON만 출력:
+[{"num":1,"strategy":"전략명","preview":"미리보기","body":["줄1","줄2"],"button":"버튼","insight":"→ 한 문장"},{"num":2,"strategy":"전략명","preview":"미리보기","body":["줄1","줄2"],"button":"버튼","insight":"→ 한 문장"},{"num":3,"strategy":"전략명","preview":"미리보기","body":["줄1","줄2"],"button":"버튼","insight":"→ 한 문장"}]`;
+
+        // ── 앱푸시 프롬프트 ──
+    const pushPrompt = `당신은 국내 대형 쇼핑몰 앱푸시 CRM 마케터입니다.
+수천 건의 A/B 테스트로 클릭률을 높이는 앱푸시 공식을 꿰뚫고 있습니다.
+아래 소재로 앱푸시 문구 3가지를 서로 다른 전략으로 작성해주세요.
+
+지점명: ${branch}
+소재: ${content}
+
+--- 타겟 ---
+4050 여성 고객. 잠금화면이나 알림바에서 제목만 보고 열지 말지 결정함.
+
+--- 각 구성 요소의 역할 ---
+
+[제목] — 후킹 + $회원명 개인화 필수
+· 25자 이내 / 이모지 1개
+· $회원명 변수 반드시 포함
+· 귀엽고 살짝 설레는 말투로 — 친구가 보낸 카톡처럼
+· 혜택을 직접 언급하거나 호기심을 자극하는 한 줄
+· 잘 된 예시:
+  "$회원명님을 위한 쿠폰팩 가지고 왔어요 💌"
+  "$회원명님 오늘만 이 혜택 드려요 🎁"
+  "$회원명님 주년 선물 도착했어요 🎉"
+· 나쁜 예시: "$회원명님 4.15 주년 혜택" (너무 건조하고 밋밋)
+
+[본문1] — (광고) 표기 후 핵심 혜택 안내
+· (광고)로 시작 필수
+· 가장 강력한 혜택 하나를 수치와 함께 / 20자 이내
+· 명사형으로 끝낼 것
+
+[본문2] — 서브 혜택 또는 CTA
+· 나머지 혜택 안내 또는 행동 유도 / 20자 이내 / 이모지 1개
+· 명사형으로 끝낼 것
+
+--- 공통 금지 사항 ---
+· 쉼표(,) 사용 금지
+· 억지스러운 과장 표현 금지
+
+--- 3가지 전략 ---
+전략1: 개인화 선물 느낌 — 제목에서 "가지고 왔어요" "도착했어요" 같은 선물 받는 느낌
+전략2: 혜택 수치 직접 노출 — 제목에서 할인 금액이나 1+1 직접 언급
+전략3: 긴박감 — 제목에서 오늘만 / 마감 임박 강조
+
+순수 JSON 배열만 출력 (설명·마크다운 없이):
+[{"num":1,"strategy":"전략명","title":"제목","body1":"(광고) 본문1","body2":"본문2 이모지","insight":"→ 이유"},{"num":2,"strategy":"전략명","title":"제목","body1":"(광고) 본문1","body2":"본문2 이모지","insight":"→ 이유"},{"num":3,"strategy":"전략명","title":"제목","body1":"(광고) 본문1","body2":"본문2 이모지","insight":"→ 이유"}]`;
+
+        const prompt = isKakao ? kakaoPrompt : pushPrompt;
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1000,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      });
+
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message);
+      if (!data.content) throw new Error('응답이 없어요');
+
+      const text = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+      const match = text.match(/\[[\s\S]*\]/);
+      if (!match) throw new Error('결과 파싱 실패: ' + text.slice(0, 100));
+      const results = JSON.parse(match[0]);
+      renderResults(results, isKakao);
+    } catch (e) {
+      const errBox = document.getElementById('errorBox');
+      errBox.textContent = '⚠️ ' + (e.message || '오류가 발생했어요. 다시 시도해주세요.');
+      errBox.classList.remove('hidden');
+    }
+
+    document.getElementById('loadingBox').classList.add('hidden');
+    btn.disabled = false;
+    btn.textContent = isKakao ? '💬 카톡 플친 문구 3개 생성하기' : '✨ 앱푸시 문구 3개 생성하기';
+  }
+
+  function renderResults(results, isKakao) {
+    const box = document.getElementById('resultsBox');
+    box.innerHTML = '';
+    results.forEach(r => {
+      const card = document.createElement('div');
+      card.className = 'result-card';
+      let inner = `<div class="strategy-row"><span class="strategy-tag">${r.strategy}</span><span class="result-num">#${r.num}</span></div>`;
+      if (isKakao) {
+        inner += resultRow(true, '타이틀', r.preview, `copy-p${r.num}`, r.preview);
+        const bodyArr = Array.isArray(r.body) ? r.body : r.body.split('\n');
+        inner += resultRow(false, '설명', bodyArr.join('<br>'), `copy-b${r.num}`, bodyArr.join('\n'));
+        inner += resultRow(false, '버튼', `[ ${r.button} ]`, `copy-bt${r.num}`, r.button);
+      } else {
+        inner += resultRow(false, '제목', r.title, `copy-t${r.num}`, r.title);
+        const bodyFull = r.body1 + '\n' + r.body2 + '\n수신거부: 설정>이벤트 및 혜택 동의 해제';
+        const bodyHtml = r.body1 + '<br>' + r.body2 + '<br><span style="color:var(--text-muted);font-size:13px">수신거부: 설정>이벤트 및 혜택 동의 해제</span>';
+        inner += resultRow(false, '본문', bodyHtml, `copy-b${r.num}`, bodyFull);
+      }
+      inner += `<div class="insight">${r.insight}</div>`;
+      card.innerHTML = inner;
+      box.appendChild(card);
+    });
+    const regenBtn = document.createElement('button');
+    regenBtn.className = 'regen-btn';
+    regenBtn.textContent = '🔄 다른 문구로 다시 생성';
+    regenBtn.onclick = generate;
+    box.appendChild(regenBtn);
+    box.classList.remove('hidden');
+  }
+
+  function resultRow(isPreview, label, textHtml, copyId, copyText) {
+    const safe = copyText.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$');
+    return `<div class="result-row ${isPreview ? 'preview' : ''}">
+      <span class="row-label">${label}</span>
+      <span class="row-text">${textHtml}</span>
+      <button class="copy-btn" id="${copyId}" onclick="copyText('${copyId}', \`${safe}\`)">복사</button>
+    </div>`;
+  }
+
+  function copyText(btnId, text) {
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById(btnId);
+      btn.textContent = '✓ 복사됨';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = '복사'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+</script>
+</body>
+</html>
